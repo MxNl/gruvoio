@@ -58,6 +58,27 @@ well_meta <- well_meta |>
 well_meta <- well_meta |>
   st_transform(4326)
 
+# Add gwl trend
+set.seed(1)
+well_meta <- well_meta |>
+  rowwise() |>
+  mutate(
+    pred_change = runif(1),
+    .before = geometry) |>
+  group_by(rm) |>
+  mutate(
+    pred_trend = sample(c("+", "-", 0), 1, replace = TRUE),
+    .before = geometry) |>
+  ungroup() |>
+  mutate(pred_change = case_when(
+    pred_trend == "+" ~ pred_change,
+    pred_trend == "-" ~ -pred_change,
+    pred_trend == "0" ~ pred_change/100
+  )) |>
+  mutate(
+    pred_gwlnn = pred_change + runif(1, 10, 100),
+    .before = geometry)
+
 # germany_gridpoints |>
 #   ggplot() +
 #   geom_sf(colour = "white", size = 1) +
