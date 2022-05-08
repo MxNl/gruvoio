@@ -43,8 +43,8 @@ click_count <- 0
       mainPanel(
         width = 6,
         # height = "95vh",
-        leafletOutput("map", width = "100%", height = "90vh"),
-        textOutput("click")
+        leafletOutput("map", width = "80%", height = "90vh"),
+        textOutput("info"),
       )
     )
   )
@@ -108,13 +108,12 @@ click_count <- 0
       updateCheckboxGroupInput(inputId = "themes_add", choices = mapthemes_add)
     })
 
-    observe({
 
+    observe({
       p <- input$map_click
       if (is.null(p)) {
         return()
       }
-
       selected_cluster <- selected_cluster()
       unselected_clusters <- well_meta |>
         filter(!(well_id %in% pull(selected_cluster, well_id)))
@@ -142,6 +141,13 @@ click_count <- 0
       }
 
         click_count <<- click_count+1
+    })
+
+    output$info <- renderText({
+      selected_cluster() |>
+        as_tibble() |>
+        pull(well_id) |>
+        unique()
     })
   }
   shinyApp(ui, server)
