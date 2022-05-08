@@ -4,7 +4,9 @@ library(shinyWidgets)
 library(leaflet)
 library(dplyr)
 
-gruvoApp <- function() {
+click_count <- 0
+
+# gruvoApp <- function() {
   ui <- fluidPage(
     theme = shinytheme("darkly"),
     titlePanel(
@@ -49,7 +51,6 @@ gruvoApp <- function() {
     selected_cluster <- reactive({
       p <- input$map_click
       mouse_point <- sf::st_point(c(p$lng, p$lat)) |>
-        # mouse_point <- sf::st_point(c(7.909323, 51.72001)) |>
         sf::st_geometry() |>
         sf::st_sf(crs = sf::st_crs(well_meta))
 
@@ -78,7 +79,12 @@ gruvoApp <- function() {
       pal
     })
 
-    output$map <- leaflet::renderLeaflet({
+    reset_click <- reactive({
+      input$reset
+    })
+
+    init_map <- function() {
+      leaflet::renderLeaflet({
       # factpal <- colorFactor(topo.colors(5), well_meta$rm)
 
       leaflet() |>
@@ -86,8 +92,15 @@ gruvoApp <- function() {
         # addProviderTiles("OpenStreetMap.DE") |>
         addProviderTiles("Stamen.TonerBackground") |>
         # addMarkers(data = well_meta)
-        addCircles(data = well_meta, color = ~ pred_gwlnn_pal(well_meta$pred_gwlnn))
+        addCircles(
+          data = well_meta,
+          # color = ~ pred_gwlnn_pal(well_meta$pred_gwlnn)
+          color = ~ selected_theme()
+          )
     })
+    }
+
+    output$map <- init_map()
 
     observeEvent(input$reset, {
       updateRadioButtons(inputId = "theme", selected = mapthemes[2])
@@ -98,29 +111,18 @@ gruvoApp <- function() {
     })
 
     observe({
-      leafletProxy("map") %>%
-        clearShapes() |>
-        addCircles(
-          data = well_meta,
-          color = ~ selected_theme()
-        )
 
       p <- input$map_click
       if (is.null(p)) {
-          # leafletProxy("map") %>%
-          #   clearShapes() %>%
-          #   addCircles(
-          #     data = well_meta,
-          #     color = ~ selected_theme()
-          #   )
         return()
       }
 
       selected_cluster <- selected_cluster()
       unselected_clusters <- well_meta |>
         filter(!(well_id %in% pull(selected_cluster, well_id)))
-      print(selected_cluster)
 
+      type <<- click_count%%2
+      if (type ==0){
         leafletProxy("map") %>%
           clearShapes() %>%
           addCircles(
@@ -131,7 +133,18 @@ gruvoApp <- function() {
             data = unselected_clusters,
             color = "grey",radius = 10
           )
+      }
+      if (type == 1){
+        leafletProxy("map") %>%
+          clearShapes() |>
+          addCircles(
+            data = well_meta,
+            color = ~ selected_theme()
+          )
+      }
+
+        click_count <<- click_count+1
     })
   }
   shinyApp(ui, server)
-}
+# }
