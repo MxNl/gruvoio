@@ -15,6 +15,7 @@ click_count <- 0
     sidebarLayout(
       sidebarPanel(
         width = 2,
+        height = "100%",
         radioButtons(
           "theme",
           "Thema für Anzeige in Karte",
@@ -42,7 +43,7 @@ click_count <- 0
       mainPanel(
         width = 6,
         # height = "95vh",
-        leafletOutput("map"),
+        leafletOutput("map", width = "100%", height = "90vh"),
         textOutput("click")
       )
     )
@@ -79,13 +80,10 @@ click_count <- 0
       pal
     })
 
-    reset_click <- reactive({
-      input$reset
-    })
+    factpal <- colorFactor(topo.colors(5), well_meta$rm)
 
     init_map <- function() {
       leaflet::renderLeaflet({
-      # factpal <- colorFactor(topo.colors(5), well_meta$rm)
 
       leaflet() |>
         # addTiles() |>
