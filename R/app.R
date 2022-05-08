@@ -1,50 +1,81 @@
+library(leaflet)
+library(sf)
+library(ggdark)
+library(ggplot2)
 library(shiny)
 library(shinythemes)
 library(shinyWidgets)
-library(leaflet)
-library(dplyr)
+
+data("mapthemes")
+data("prediction_horizons_labels")
+data("mapthemes_add")
+data("mapthemes")
+data("well_meta")
+data("well_data")
 
 click_count <- 0
+theme_before <- mapthemes[2]
 
 # gruvoApp <- function() {
   ui <- fluidPage(
     theme = shinytheme("darkly"),
-    titlePanel(
-      "Gruvo - Grundwasservorhersage für Deutschland"
-    ),
-    sidebarLayout(
-      sidebarPanel(
-        width = 2,
-        height = "100%",
+    # titlePanel(
+    #   h1("Gruvo - Grundwasservorhersage für Deutschland", align = "center")
+    # ),
+    fluidRow(
+      column(
+        width = 12,
+        offset = 4,
+        titlePanel("Gruvo - Grundwasservorhersage für Deutschland")
+        )
+      ),
+    br(),
+    fluidRow(
+      column(
+        2,
+        # offset = 1,
+        # "sidebar",
+        br(),
+        br(),
         radioButtons(
           "theme",
           "Thema für Anzeige in Karte",
           choices = mapthemes,
           selected = mapthemes[2]
         ),
+        br(),
         sliderTextInput(
           "horizon",
           "Vorhersagezeitraum",
           choices = prediction_horizons_labels,
           grid = TRUE
         ),
+        br(),
         checkboxInput(
           "performance",
           "Modellgüte",
           value = FALSE
         ),
+        br(),
         checkboxGroupInput(
           "themes_add",
           "Zusätzliche Themen als Hintergrundkarten",
           choices = mapthemes_add
         ),
+        br(),
         actionButton("reset", "Reset")
       ),
-      mainPanel(
-        width = 6,
-        # height = "95vh",
-        leafletOutput("map", width = "80%", height = "90vh"),
+      column(
+        5,
+        # "main",
+        leafletOutput("map", width = "100%", height = "80vh"),
+      ),
+      column(
+        5,
+        # "main",
         textOutput("info"),
+        br(),
+        plotOutput("predplot", height = "20vh")
       )
     )
   )
@@ -93,6 +124,7 @@ click_count <- 0
         addCircles(
           data = well_meta,
           # color = ~ pred_gwlnn_pal(well_meta$pred_gwlnn)
+          opacity = 1,
           color = ~ selected_theme()
           )
     })
@@ -108,6 +140,9 @@ click_count <- 0
       updateCheckboxGroupInput(inputId = "themes_add", choices = mapthemes_add)
     })
 
+    cluster_select_message <- renderText({"Please select a cluster or observation well!"})
+
+    output$info <- cluster_select_message
 
     observe({
       p <- input$map_click
@@ -117,37 +152,56 @@ click_count <- 0
       selected_cluster <- selected_cluster()
       unselected_clusters <- well_meta |>
         filter(!(well_id %in% pull(selected_cluster, well_id)))
+      selected_cluster_ref_well_id <- selected_cluster |>
+        as_tibble() |>
+        pull(rm) |>
+        unique()
 
       type <<- click_count%%2
-      if (type ==0){
+      if (type == 0){
+        output$info <- renderText({
+          selected_cluster_ref_well_id
+          })
+
+        output$predplot <- renderPlot({
+          well_data |>
+            filter(well_id == selected_cluster_ref_well_id) |>
+            ggplot(aes(date, gwl)) +
+            geom_line(colour = "deepskyblue") +
+            dark_theme_light()
+        })
+
         leafletProxy("map") %>%
           clearShapes() %>%
           addCircles(
             data = selected_cluster,
+            opacity = 1,
             color = ~ selected_theme()
           ) |>
           addCircles(
             data = unselected_clusters,
-            color = "grey",radius = 10
+            opacity = 0.25,
+            color = ~ selected_theme(),radius = 10
           )
       }
       if (type == 1){
+        output$info <- cluster_select_message
+
+        output$predplot <- NULL
+
         leafletProxy("map") %>%
           clearShapes() |>
           addCircles(
             data = well_meta,
+            opacity = 1,
             color = ~ selected_theme()
           )
       }
-
-        click_count <<- click_count+1
-    })
-
-    output$info <- renderText({
-      selected_cluster() |>
-        as_tibble() |>
-        pull(well_id) |>
-        unique()
+        click_count <<- click_count + 1
+        # if (theme_before != input$theme) {
+        # click_count <<- click_count - 1
+        # theme_before <- input$theme
+        # }
     })
   }
   shinyApp(ui, server)
