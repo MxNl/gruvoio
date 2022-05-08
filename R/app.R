@@ -1,5 +1,6 @@
 library(leaflet)
 library(sf)
+library(dplyr)
 library(ggdark)
 library(ggplot2)
 library(shiny)
