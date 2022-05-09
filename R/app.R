@@ -74,7 +74,7 @@ theme_before <- mapthemes[2]
       column(
         5,
         # "main",
-        textOutput("info"),
+        htmlOutput("info"),
         br(),
         plotOutput("predplot", height = "20vh")
       )
@@ -161,7 +161,8 @@ theme_before <- mapthemes[2]
       type <<- click_count%%2
       if (type == 0){
         output$info <- renderText({
-          selected_cluster_ref_well_id
+          paste0("Reference well of the selected cluster: <br/>", selected_cluster_ref_well_id) |>
+            HTML()
           })
 
         output$predplot <- renderPlot({
