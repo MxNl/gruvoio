@@ -1,7 +1,6 @@
 library(leaflet)
 library(sf)
 library(dplyr)
-library(ggdark)
 library(ggplot2)
 library(shiny)
 library(shinythemes)
@@ -19,7 +18,7 @@ theme_before <- mapthemes[2]
 
 # gruvoApp <- function() {
   ui <- fluidPage(
-    theme = shinytheme("darkly"),
+    theme = shinytheme("flatly"),
     # titlePanel(
     #   h1("Gruvo - Grundwasservorhersage für Deutschland", align = "center")
     # ),
@@ -34,6 +33,8 @@ theme_before <- mapthemes[2]
     fluidRow(
       column(
         2,
+        # wellPanel(
+        style='padding-left:40px; padding-right:30px; padding-top:0px; padding-bottom:0px',
         # offset = 1,
         # "sidebar",
         br(),
@@ -58,13 +59,14 @@ theme_before <- mapthemes[2]
           value = FALSE
         ),
         br(),
-        checkboxGroupInput(
+        radioButtons(
           "themes_add",
           "Zusätzliche Themen als Hintergrundkarten",
           choices = mapthemes_add
         ),
         br(),
         actionButton("reset", "Reset")
+      # )
       ),
       column(
         5,
@@ -138,7 +140,7 @@ theme_before <- mapthemes[2]
       updateSliderTextInput(inputId = "horizon", session = session,
                             choices = prediction_horizons_labels, selected = prediction_horizons_labels[1])
       updateCheckboxInput(inputId = "performance", value = FALSE)
-      updateCheckboxGroupInput(inputId = "themes_add", choices = mapthemes_add)
+      updateRadioButtons(inputId = "themes_add", selected = mapthemes_add[1])
     })
 
     cluster_select_message <- renderText({"Please select a cluster or observation well!"})
@@ -170,11 +172,11 @@ theme_before <- mapthemes[2]
             filter(well_id == selected_cluster_ref_well_id) |>
             ggplot(aes(date, gwl)) +
             geom_line(colour = "deepskyblue") +
-            dark_theme_light()
+            theme_minimal()
         })
 
-        leafletProxy("map") %>%
-          clearShapes() %>%
+        leafletProxy("map") |>
+          clearShapes() |>
           addCircles(
             data = selected_cluster,
             opacity = 1,
@@ -191,7 +193,7 @@ theme_before <- mapthemes[2]
 
         output$predplot <- NULL
 
-        leafletProxy("map") %>%
+        leafletProxy("map") |>
           clearShapes() |>
           addCircles(
             data = well_meta,
@@ -205,6 +207,68 @@ theme_before <- mapthemes[2]
         # theme_before <- input$theme
         # }
     })
+
+    observe({
+      # print(input$themes_add)
+      themes_add <- input$themes_add
+      if (themes_add == mapthemes_add[1]) {
+        leafletProxy("map") |>
+          removeTiles(mapthemes_add)
+      }
+
+      if (themes_add == mapthemes_add[2]) {
+        leafletProxy("map") |>
+          removeTiles(mapthemes_add) |>
+              addWMSTiles(
+                "https://services.bgr.de/wms/grundwasser/huek250/?",
+                layers = "0",
+                layerId = mapthemes_add[2],
+                options = WMSTileOptions(format = "image/png", transparent = TRUE)
+                )
+      }
+      if (themes_add == mapthemes_add[3]) {
+        leafletProxy("map") |>
+          removeTiles(mapthemes_add) |>
+              addWMSTiles(
+                "https://services.bgr.de/wms/grundwasser/hyraum/?",
+                layers = "0",
+                layerId = mapthemes_add[3],
+                options = WMSTileOptions(format = "image/png", transparent = TRUE)
+                )
+      }
+      if (themes_add == mapthemes_add[4]) {
+        leafletProxy("map") |>
+          removeTiles(mapthemes_add) |>
+              addWMSTiles(
+                "https://services.bgr.de/wms/grundwasser/hyraum/?",
+                layers = "1",
+                layerId = mapthemes_add[4],
+                options = WMSTileOptions(format = "image/png", transparent = TRUE)
+                )
+      }
+      if (themes_add == mapthemes_add[5]) {
+        leafletProxy("map") |>
+          removeTiles(mapthemes_add) |>
+              addWMSTiles(
+                "https://services.bgr.de/wms/grundwasser/hyraum/?",
+                layers = "2",
+                layerId = mapthemes_add[5],
+                options = WMSTileOptions(format = "image/png", transparent = TRUE)
+                )
+      }
+
+      })
+
+    # observe({
+    #   input$themes_add
+    #
+    #   leafletProxy("map") |>
+    #     addWMSTiles(
+    #       "https://services.bgr.de/wms/grundwasser/huek250/?",
+    #       layers = "",
+    #       options = WMSTileOptions(format = "image/png", transparent = TRUE)
+    #       )
+    # })
   }
   shinyApp(ui, server)
 # }
