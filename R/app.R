@@ -122,8 +122,8 @@ theme_before <- mapthemes[2]
       leaflet() |>
         # addTiles() |>
         # addProviderTiles("OpenStreetMap.DE") |>
-        addProviderTiles("Stamen.TonerBackground") |>
-        # addMarkers(data = well_meta)
+        addProviderTiles("CartoDB.PositronNoLabels") |>
+        # addProviderTiles("Stamen.TonerBackground") |>
         addCircles(
           data = well_meta,
           # color = ~ pred_gwlnn_pal(well_meta$pred_gwlnn)
@@ -213,7 +213,8 @@ theme_before <- mapthemes[2]
       themes_add <- input$themes_add
       if (themes_add == mapthemes_add[1]) {
         leafletProxy("map") |>
-          removeTiles(mapthemes_add)
+          removeTiles(mapthemes_add) |>
+          addProviderTiles("CartoDB.PositronNoLabels")
       }
 
       if (themes_add == mapthemes_add[2]) {
@@ -255,6 +256,11 @@ theme_before <- mapthemes[2]
                 layerId = mapthemes_add[5],
                 options = WMSTileOptions(format = "image/png", transparent = TRUE)
                 )
+      }
+      if (themes_add == mapthemes_add[6]) {
+        leafletProxy("map") |>
+          removeTiles(mapthemes_add) |>
+              addTiles()
       }
 
       })
